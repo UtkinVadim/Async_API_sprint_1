@@ -1,0 +1,26 @@
+services:
+  redis:
+    image: redis:6.2.6-alpine
+    container_name: redis
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - ${REDIS_HOST}:${REDIS_PORT}:6379
+    networks:
+      - async_api_network
+
+  elasticsearch:
+    image: elasticsearch:7.14.2
+    container_name: elasticsearch
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - ${ELASTIC_HOST}:${ELASTIC_PORT}:9200
+    networks:
+      - async_api_network
+
+networks:
+  async_api_network:
+    external: false

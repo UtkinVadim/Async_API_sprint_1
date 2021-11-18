@@ -1,0 +1,14 @@
+[flake8]
+
+ignore = E203, E501, W503,  # handled by black
+         A003,
+         B008
+
+exclude =
+    .*
+    venv
+    env
+
+max-cognitive-complexity = 7
+
+doctests = True
