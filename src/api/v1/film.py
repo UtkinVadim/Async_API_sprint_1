@@ -61,6 +61,7 @@ async def film_search(
     sort: Optional[str] = Query(None, regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
     filter_person_id: Optional[str] = Query(None, alias="filter[person]"),
+    # FIXME не используется, если успеет сделаю фильтрацию и по жанрам и по персоналиям
     film_service: FilmService = Depends(get_film_service),
 ) -> list[Film]:
     """
@@ -93,6 +94,14 @@ async def film_search(
 
 
 async def generate_body(query, from_, size) -> dict:
+    """
+    Создаёт тело запроса к эластику
+
+    :param query:
+    :param from_: номер выводимой страницы
+    :param size: кол-во данных (документов) на странице
+    :return:
+    """
     if not query:
         query = ""
 
@@ -101,12 +110,19 @@ async def generate_body(query, from_, size) -> dict:
     if from_:
         body["from"] = from_
     if size:
-        body["from"] = size
+        body["size"] = size
 
     return body
 
 
 async def add_sort_to_body(body, sort) -> dict:
+    """
+    Добавляет в тело зарпоса сортировку
+
+    :param body:
+    :param sort:
+    :return:
+    """
     if "-" in sort:
         sort = [{"imdb_rating": "desc"}]
     else:
@@ -116,6 +132,13 @@ async def add_sort_to_body(body, sort) -> dict:
 
 
 async def add_filter_to_body(body, filter_genre) -> dict:
+    """
+    Добавляет в тело запроса условие фильтрации по жанру
+
+    :param body:
+    :param filter_genre:
+    :return:
+    """
     filter_dict = {
         "bool": {
             "filter": {
