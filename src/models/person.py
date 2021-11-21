@@ -10,7 +10,7 @@ from models.utils import orjson_dumps
 class Person(BaseModel):
     uuid: str
     full_name: str
-    role: List[str]
+    role: str
     film_ids: List[Film]
 
     class Config:
