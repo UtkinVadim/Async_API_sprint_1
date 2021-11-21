@@ -6,7 +6,7 @@ from models.utils import orjson_dumps
 
 
 class Genre(BaseModel):
-    uuid: str
+    id: str
     name: str
 
     class Config:
