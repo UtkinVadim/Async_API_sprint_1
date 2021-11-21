@@ -1,22 +1,21 @@
 import orjson
 
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 
 from models.utils import orjson_dumps
 
 
+class FilmId(BaseModel):
+    id: str
+
+
 class Person(BaseModel):
-    uuid: str
-    full_name: str
+    id: str
+    fullname: str
     role: str
-    film_ids: "List[Film]"
+    film_ids: Optional[List[FilmId]]
 
     class Config:
         json_loads = orjson.loads
         json_dumps = orjson_dumps
-
-
-from models.film import Film  # noqa: E402
-
-Person.update_forward_refs()
