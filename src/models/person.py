@@ -1,19 +1,18 @@
 import orjson
 
-# Используем pydantic для упрощения работы при перегонке данных из json в объекты
+from typing import List
 from pydantic import BaseModel
 
-
-def orjson_dumps(v, *, default):
-    # orjson.dumps возвращает bytes, а pydantic требует unicode, поэтому декодируем
-    return orjson.dumps(v, default=default).decode()
+from models.film import Film
+from models.utils import orjson_dumps
 
 
 class Person(BaseModel):
-    id: str
-    fullname: str
+    uuid: str
+    full_name: str
+    role: str
+    film_ids: List[Film]
 
     class Config:
-        # Заменяем стандартную работу с json на более быструю
         json_loads = orjson.loads
         json_dumps = orjson_dumps
