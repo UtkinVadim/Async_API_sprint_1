@@ -42,11 +42,34 @@ async def film_details(
     return FilmDetailed(**film.dict())
 
 
-# GET /api/v1/film?filter[genre]=<uuid:UUID>&sort=-imdb_rating&page[size]=50&page[number]=1
-# GET /api/v1/film?sort=-imdb_rating&page[size]=50&page[number]=1
-# Полная информация по фильму.
-# /api/v1/film/<uuid:UUID>/
-@router.get("/search/")
+@router.get("/", response_model=list[ShortFilm])
+async def film_filter(
+    from_: Optional[str] = Query(
+        None,
+        alias="page[number]",
+        title="Query string",
+        description="Query string for the items to search in the database that have a good match",
+    ),
+    size: Optional[str] = Query(None, alias="page[size]"),
+    sort: Optional[str] = Query("imdb_rating", regex="-?imdb_rating"),
+    filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
+    # FIXME не используется, если успеет сделаю фильтрацию и по жанрам и по персоналиям
+    filter_person_id: Optional[str] = Query(None, alias="filter[person]"),
+    film_service: FilmService = Depends(get_film_service),
+) -> list[ShortFilm]:
+    result = await film_search(
+        query=None,
+        from_=from_,
+        size=size,
+        sort=sort,
+        filter_genre_id=filter_genre_id,
+        filter_person_id=filter_person_id,
+        film_service=film_service,
+    )
+    return result
+
+
+@router.get("/search/", response_model=list[ShortFilm])
 async def film_search(
     query: Optional[str] = Query("", alias="query"),
     from_: Optional[str] = Query(
@@ -74,14 +97,20 @@ async def film_search(
     :param film_service:
     :return:
     """
+    if query and len(query) == 0:
+        return
+
     body = await generate_body(query, from_, size)
 
     if sort:
         body = await add_sort_to_body(body, sort)
 
     if filter_genre_id:
-        # FIXME обработать ситуацию если жанр не будет найден
         filter_genre = await film_service.get_by_id(filter_genre_id, index="genre")
+        if not filter_genre:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="films not found"
+            )
         body = await add_filter_to_body(body, filter_genre)
 
     result = await film_service.search(index="movies", body=body)
@@ -94,17 +123,21 @@ async def film_search(
 
 async def generate_body(query, from_, size) -> dict:
     """
-    Создаёт тело запроса к эластику
+    Создаёт тело запроса к эластику.
+    Если query не задан - возвращает все документы.
 
     :param query:
     :param from_: номер выводимой страницы
     :param size: кол-во данных (документов) на странице
     :return:
     """
-    if not query:
-        query = ""
 
-    body = {"query": {"bool": {"must": [{"multi_match": {"query": query}}]}}}
+    if not query:
+        match = {"match_all": {}}
+    else:
+        match = {"multi_match": {"query": query}}
+
+    body = {"query": {"bool": {"must": [match]}}}
 
     if from_:
         body["from"] = from_
