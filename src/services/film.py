@@ -38,15 +38,11 @@ class FilmService:
         :param index:
         :return:
         """
-        # Пытаемся получить данные из кеша, потому что оно работает быстрее
         obj = await self._get_from_cache_by_id(id_, index)
         if not obj:
-            # Если фильма нет в кеше, то ищем его в Elasticsearch
             obj = await self._get_by_id_from_elastic(id_, index)
             if not obj:
-                # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
                 return None
-            # Сохраняем фильм  в кеш
             await self._put_obj_to_cache(obj)
         return obj
 
@@ -67,22 +63,33 @@ class FilmService:
             return
 
     async def _get_from_cache_by_id(self, id_: str, index: str) -> Optional[Film]:
+        """
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get
+        # pydantic предоставляет удобное API для создания объекта моделей из json
+
+        :param id_:
+        :param index:
+        :return:
+        """
         data = await self.redis.get(id_)
         if not data:
             return None
 
-        # pydantic предоставляет удобное API для создания объекта моделей из json
         data_model = self.models[index]
         obj = data_model.parse_raw(data)
         return obj
 
     async def _put_obj_to_cache(self, obj: Union[Film]):
-        # Сохраняем данные о фильме, используя команду set
-        # Выставляем время жизни кеша — 5 минут
-        # https://redis.io/commands/set
-        # pydantic позволяет сериализовать модель в json
+        """
+        Сохраняем данные о фильме, используя команду set
+        Выставляем время жизни кеша — 5 минут
+        https://redis.io/commands/set
+        pydantic позволяет сериализовать модель в json
+
+        :param obj:
+        :return:
+        """
         await self.redis.set(obj.id, obj.json(), expire=FILM_CACHE_EXPIRE_IN_SECONDS)
 
 
