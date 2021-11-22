@@ -102,7 +102,7 @@ async def film_search(
     :param film_service:
     :return:
     """
-    if query and len(query) == 0:
+    if query == "" and len(query) == 0:
         return
 
     body = await generate_body(query, from_, size)
