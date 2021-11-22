@@ -63,7 +63,7 @@ class FilmService:
 
         return docs
 
-    async def _search_in_elastic(self, body: dict, index: str) -> Optional[Film, Person, Genre]:
+    async def _search_in_elastic(self, body: dict, index: str) -> Union[Film, Person, Genre, None]:
         """
         Выполяет поиск в индексе эластика index по запросу body.
         Возвращаемый результат валидируется моделью.
@@ -79,7 +79,7 @@ class FilmService:
         docs = [data_model(**d["_source"]) for d in docs]
         return docs
 
-    async def _get_by_id_from_elastic(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
+    async def _get_by_id_from_elastic(self, id_: str, index: str) -> Union[Film, Person, Genre, None]:
         """
         Забирает данные из эластика по id. Результат валидируется моделью.
 
@@ -95,7 +95,7 @@ class FilmService:
             logger.exception("Ошибка на этапе забора документа из elastic по id")
             return
 
-    async def _get_from_cache_by_id(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
+    async def _get_from_cache_by_id(self, id_: str, index: str) -> Union[Film, Person, Genre, None]:
         """
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get
@@ -123,7 +123,7 @@ class FilmService:
 
         return hashlib.md5(str(body).encode("utf-8")).hexdigest()
 
-    async def _get_from_cache_by_body(self, body: dict, index: str) -> Optional[list[Film], list[Person], list[Genre]]:
+    async def _get_from_cache_by_body(self, body: dict, index: str) -> Union[list[Film], list[Person], list[Genre]]:
         """
         Забирает данные из кеша по ключу (body).
         Полученные данные вставляет в модель данных
