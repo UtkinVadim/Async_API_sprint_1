@@ -46,9 +46,7 @@ class FilmService:
             await self._put_obj_to_cache(obj)
         return obj
 
-    async def search(
-        self, index: str, body: dict
-    ) -> Optional[list[Film], list[Person], list[Genre]]:
+    async def search(self, index: str, body: dict) -> Optional[list[Film], list[Person], list[Genre]]:
         """
         Выполняет поиск данных по запросу (body) и индексу. Сначала проверяет наличие данных в кеше.
         Если данных в кеше нет - обращается к эластику и кеширует положительный результат.
@@ -67,11 +65,10 @@ class FilmService:
 
         return docs
 
-    async def _search_in_elastic(
-        self, body: dict, index: str
-    ) -> Optional[Film, Person, Genre]:
+    async def _search_in_elastic(self, body: dict, index: str) -> Optional[Film, Person, Genre]:
         """
-        Выполяет поиск в индексе эластика index по запросу body. Возвращаемый результат валидируется моделью.
+        Выполяет поиск в индексе эластика index по запросу body.
+        Возвращаемый результат валидируется моделью.
 
         :param body:
         :param index:
@@ -84,9 +81,7 @@ class FilmService:
         docs = [data_model(**d["_source"]) for d in docs]
         return docs
 
-    async def _get_by_id_from_elastic(
-        self, id_: str, index: str
-    ) -> Optional[Film, Person, Genre]:
+    async def _get_by_id_from_elastic(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
         """
         Забирает данные из эластика по id. Результат валидируется моделью.
 
@@ -102,9 +97,7 @@ class FilmService:
             logger.exception("Ошибка на этапе забора документа из elastic по id")
             return
 
-    async def _get_from_cache_by_id(
-        self, id_: str, index: str
-    ) -> Optional[Film, Person, Genre]:
+    async def _get_from_cache_by_id(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
         """
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get
@@ -132,9 +125,7 @@ class FilmService:
 
         return hashlib.md5(str(body).encode("utf-8")).hexdigest()
 
-    async def _get_from_cache_by_body(
-        self, body: dict, index: str
-    ) -> Optional[list[Film]]:
+    async def _get_from_cache_by_body(self, body: dict, index: str) -> Optional[list[Film], list[Person], list[Genre]]:
         """
         Забирает данные из кеша по ключу (body).
         Полученные данные вставляет в модель данных
@@ -157,7 +148,7 @@ class FilmService:
         self,
         obj: Union[Film, Person, Genre, list[Film], list[Person], list[Genre]],
         key: str = None,
-    ):
+    ) -> None:
         """
         Сохраняем данные о фильме, используя команду set
         Выставляем время жизни кеша — 5 минут
