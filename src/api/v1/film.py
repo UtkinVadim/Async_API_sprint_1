@@ -15,10 +15,24 @@ class ShortFilm(BaseModel):
     imdb_rating: Optional[float]
 
 
-class FilmDetailed(Film):
+class FilmPerson(BaseModel):
+    id: str
+    name: str
+
+
+class FilmDetailed(BaseModel):
     """
     Класс модели с полной информацией о фильме
     """
+
+    id: str
+    title: Optional[str]
+    imdb_rating: Optional[float]
+    description: Optional[str]
+    genre: Optional[list]
+    director: Optional[str]
+    actors: Optional[list[FilmPerson]]
+    writers: Optional[list[FilmPerson]]
 
 
 # Внедряем FilmService с помощью Depends(get_film_service)
