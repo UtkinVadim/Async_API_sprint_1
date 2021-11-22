@@ -2,7 +2,7 @@ import hashlib
 import json
 import logging
 from functools import lru_cache
-from typing import Optional, Union
+from typing import Union
 
 from aioredis import Redis
 from core.config import CACHE_EXPIRE_IN_SECONDS
@@ -44,7 +44,7 @@ class FilmService:
             await self._put_obj_to_cache(obj)
         return obj
 
-    async def search(self, index: str, body: dict) -> Optional[list[Film], list[Person], list[Genre]]:
+    async def search(self, index: str, body: dict) -> Union[list[Film], list[Person], list[Genre]]:
         """
         Выполняет поиск данных по запросу (body) и индексу. Сначала проверяет наличие данных в кеше.
         Если данных в кеше нет - обращается к эластику и кеширует положительный результат.
