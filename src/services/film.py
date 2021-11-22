@@ -1,19 +1,21 @@
+import logging
 from functools import lru_cache
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 from aioredis import Redis
-from elasticsearch import AsyncElasticsearch
-from fastapi import Depends
-
 from db.elastic import get_elastic
 from db.redis import get_redis
+from elasticsearch import AsyncElasticsearch
+from fastapi import Depends
 from models.film import Film
-from models.person import Person
 from models.genre import Genre
+from models.person import Person
 
 # FIXME: вынести это в настройки
 # FIXME: добавить время кеша на жанры и персоналии
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
+
+logger = logging.getLogger(__name__)
 
 
 class FilmService:
@@ -56,9 +58,13 @@ class FilmService:
         return doc
 
     async def _get_by_id_from_elastic(self, id_: str, index: str) -> Optional[Film]:
-        doc = await self.elastic.get(index, id_)
-        data_model = self.models[index]
-        return data_model(**doc["_source"])
+        try:
+            doc = await self.elastic.get(index, id_)
+            data_model = self.models[index]
+            return data_model(**doc["_source"])
+        except Exception:
+            logger.exception("Ошибка на этапе забора документа из elastic по id")
+            return
 
     async def _get_from_cache_by_id(self, id_: str, index: str) -> Optional[Film]:
         # Пытаемся получить данные о фильме из кеша, используя команду get
