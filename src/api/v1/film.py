@@ -47,14 +47,17 @@ async def film_filter(
     from_: Optional[str] = Query(
         None,
         alias="page[number]",
-        title="Query string",
-        description="Query string for the items to search in the database that have a good match",
+        title="страница",
+        description="Порядковый номер страницы результатов",
     ),
-    size: Optional[str] = Query(None, alias="page[size]"),
+    size: Optional[str] = Query(
+        None,
+        alias="page[size]",
+        title="размер страницы",
+        description="Количество документов на странице",
+    ),
     sort: Optional[str] = Query("imdb_rating", regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
-    # FIXME не используется, если успеет сделаю фильтрацию и по жанрам и по персоналиям
-    filter_person_id: Optional[str] = Query(None, alias="filter[person]"),
     film_service: FilmService = Depends(get_film_service),
 ) -> list[ShortFilm]:
     result = await film_search(
@@ -63,7 +66,6 @@ async def film_filter(
         size=size,
         sort=sort,
         filter_genre_id=filter_genre_id,
-        filter_person_id=filter_person_id,
         film_service=film_service,
     )
     return result
@@ -75,14 +77,17 @@ async def film_search(
     from_: Optional[str] = Query(
         None,
         alias="page[number]",
-        title="Query string",
-        description="Query string for the items to search in the database that have a good match",
+        title="страница",
+        description="Порядковый номер страницы результатов",
     ),
-    size: Optional[str] = Query(None, alias="page[size]"),
+    size: Optional[str] = Query(
+        None,
+        alias="page[size]",
+        title="размер страницы",
+        description="Количество документов на странице",
+    ),
     sort: Optional[str] = Query(None, regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
-    # FIXME не используется, если успеет сделаю фильтрацию и по жанрам и по персоналиям
-    filter_person_id: Optional[str] = Query(None, alias="filter[person]"),
     film_service: FilmService = Depends(get_film_service),
 ) -> list[ShortFilm]:
     """
