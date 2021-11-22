@@ -2,7 +2,6 @@ import os
 from logging import config as logging_config
 
 from core.logger import LOGGING
-
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv(raise_error_if_not_found=False))
@@ -27,3 +26,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Настройки сервера
 SERVER_HOST = os.getenv("SERVER_HOST", "127.0.0.1")
 SERVER_PORT = int(os.getenv("SERVER_PORT", 8000))
+
+# TTL кэша
+CACHE_EXPIRE_IN_SECONDS = int(os.getenv("CACHE_EXPIRE_IN_SECONDS", 5 * 60))
