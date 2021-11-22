@@ -5,6 +5,7 @@ from functools import lru_cache
 from typing import Optional, Union
 
 from aioredis import Redis
+from core.config import CACHE_EXPIRE_IN_SECONDS
 from db.elastic import get_elastic
 from db.redis import get_redis
 from elasticsearch import AsyncElasticsearch
@@ -12,9 +13,6 @@ from fastapi import Depends
 from models.film import Film
 from models.genre import Genre
 from models.person import Person
-
-# FIXME: вынести это в настройки
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +164,7 @@ class FilmService:
         else:
             data_to_cache = json.dumps({"result": [d.json() for d in obj]})
 
-        await self.redis.set(key, data_to_cache, expire=FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(key, data_to_cache, expire=CACHE_EXPIRE_IN_SECONDS)
 
 
 @lru_cache()
