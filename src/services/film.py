@@ -14,7 +14,6 @@ from models.genre import Genre
 from models.person import Person
 
 # FIXME: вынести это в настройки
-# FIXME: добавить время кеша на жанры и персоналии
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,6 @@ class FilmService:
             "person": Person,
         }
 
-    # get_by_id возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе
     async def get_by_id(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
         """
         Возвращает объект по id из указанного индекса. Сначала ищет объект в кеше,
@@ -51,6 +49,14 @@ class FilmService:
     async def search(
         self, index: str, body: dict
     ) -> Optional[list[Film], list[Person], list[Genre]]:
+        """
+        Выполняет поиск данных по запросу (body) и индексу. Сначала проверяет наличие данных в кеше.
+        Если данных в кеше нет - обращается к эластику и кеширует положительный результат.
+
+        :param index:
+        :param body:
+        :return:
+        """
         docs = await self._get_from_cache_by_body(body, index)
         if not docs:
             docs = await self._search_in_elastic(index=index, body=body)
@@ -64,15 +70,30 @@ class FilmService:
     async def _search_in_elastic(
         self, body: dict, index: str
     ) -> Optional[Film, Person, Genre]:
+        """
+        Выполяет поиск в индексе эластика index по запросу body. Возвращаемый результат валидируется моделью.
+
+        :param body:
+        :param index:
+        :return:
+        """
         docs = await self.elastic.search(index=index, body=body)
         docs = docs.get("hits", {})
         docs = docs.get("hits", [])
-        docs = [Film(**d["_source"]) for d in docs]
+        data_model = self.models[index]
+        docs = [data_model(**d["_source"]) for d in docs]
         return docs
 
     async def _get_by_id_from_elastic(
         self, id_: str, index: str
     ) -> Optional[Film, Person, Genre]:
+        """
+        Забирает данные из эластика по id. Результат валидируется моделью.
+
+        :param id_:
+        :param index:
+        :return:
+        """
         try:
             doc = await self.elastic.get(index, id_)
             data_model = self.models[index]
