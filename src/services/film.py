@@ -1,8 +1,8 @@
 import hashlib
+import json
 import logging
 from functools import lru_cache
-from typing import List, Optional, Union
-import json
+from typing import Optional, Union
 
 from aioredis import Redis
 from db.elastic import get_elastic
@@ -31,7 +31,7 @@ class FilmService:
         }
 
     # get_by_id возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе
-    async def get_by_id(self, id_: str, index: str) -> Optional[Film]:
+    async def get_by_id(self, id_: str, index: str) -> Optional[Film, Person, Genre]:
         """
         Возвращает объект по id из указанного индекса. Сначала ищет объект в кеше,
         при отсутствии: берёт из базы, кладёт в кеш, возвращает найденный объект.
@@ -48,7 +48,9 @@ class FilmService:
             await self._put_obj_to_cache(obj)
         return obj
 
-    async def search(self, index: str, body: dict) -> Optional[List]:
+    async def search(
+        self, index: str, body: dict
+    ) -> Optional[list[Film], list[Person], list[Genre]]:
         docs = await self._get_from_cache_by_body(body, index)
         if not docs:
             docs = await self._search_in_elastic(index=index, body=body)
@@ -59,14 +61,18 @@ class FilmService:
 
         return docs
 
-    async def _search_in_elastic(self, body: dict, index: str) -> Optional[Film]:
+    async def _search_in_elastic(
+        self, body: dict, index: str
+    ) -> Optional[Film, Person, Genre]:
         docs = await self.elastic.search(index=index, body=body)
         docs = docs.get("hits", {})
         docs = docs.get("hits", [])
         docs = [Film(**d["_source"]) for d in docs]
         return docs
 
-    async def _get_by_id_from_elastic(self, id_: str, index: str) -> Optional[Film]:
+    async def _get_by_id_from_elastic(
+        self, id_: str, index: str
+    ) -> Optional[Film, Person, Genre]:
         try:
             doc = await self.elastic.get(index, id_)
             data_model = self.models[index]
@@ -75,7 +81,9 @@ class FilmService:
             logger.exception("Ошибка на этапе забора документа из elastic по id")
             return
 
-    async def _get_from_cache_by_id(self, id_: str, index: str) -> Optional[Film]:
+    async def _get_from_cache_by_id(
+        self, id_: str, index: str
+    ) -> Optional[Film, Person, Genre]:
         """
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get
@@ -124,7 +132,11 @@ class FilmService:
         obj = [data_model.parse_raw(d) for d in data]
         return obj
 
-    async def _put_obj_to_cache(self, obj: Union[Film, Person, Genre], key: str = None):
+    async def _put_obj_to_cache(
+        self,
+        obj: Union[Film, Person, Genre, list[Film], list[Person], list[Genre]],
+        key: str = None,
+    ):
         """
         Сохраняем данные о фильме, используя команду set
         Выставляем время жизни кеша — 5 минут
