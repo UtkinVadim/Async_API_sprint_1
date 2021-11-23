@@ -15,10 +15,8 @@ class Genre(BaseModel):
 
 
 @router.get("/", response_model=List[Genre])
-async def genres_list(
-    genre_service: GenreService = Depends(get_genre_service),
-) -> List[Genre]:
-    genres: list = await genre_service.get_all_genres()
+async def genres_list(genre_service: GenreService = Depends(get_genre_service)) -> List[Genre]:
+    genres: list = await genre_service.search(body={})
     if not genres:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="genre not found")
     return [Genre(uuid=genre.id, name=genre.name) for genre in genres]
