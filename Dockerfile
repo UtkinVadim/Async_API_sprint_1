@@ -7,14 +7,14 @@ COPY requirements/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apt update && apt install netcat -y
 
+COPY src .
+COPY .env .
+
 ARG USER=fastapi
 RUN addgroup --system ${USER} && \
     adduser --system --no-create-home --ingroup ${USER} ${USER} && \
     chown -R ${USER}:${USER} /app
 USER $USER
-
-COPY src .
-COPY .env .
 
 RUN chmod +x wait_for_elastic.sh
 
