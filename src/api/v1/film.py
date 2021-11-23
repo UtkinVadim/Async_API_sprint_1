@@ -2,68 +2,108 @@ from http import HTTPStatus
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from models.film import Film
 from pydantic import BaseModel
 from services.film import FilmService, get_film_service
 
 router = APIRouter()
 
 
-class Film(BaseModel):
+class ShortFilm(BaseModel):
     id: str
     title: str
+    imdb_rating: Optional[float]
+
+
+class FilmPerson(BaseModel):
+    id: str
+    name: str
+
+
+class FilmDetailed(BaseModel):
+    """
+    Класс модели с полной информацией о фильме
+    """
+
+    id: str
+    title: Optional[str]
+    imdb_rating: Optional[float]
+    description: Optional[str]
+    genre: Optional[list]
+    director: Optional[str]
+    actors: Optional[list[FilmPerson]]
+    writers: Optional[list[FilmPerson]]
 
 
 # Внедряем FilmService с помощью Depends(get_film_service)
-@router.get("/{film_id}", response_model=Film)
+@router.get("/{film_id}", response_model=FilmDetailed)
 async def film_details(
-    film_id: str,
+    film_id: str, film_service: FilmService = Depends(get_film_service)
+) -> Film:
+    """
+    Отдаёт полную информацию по фильму
+    GET /api/v1/film/<uuid:UUID>/
+
+    :param film_id:
+    :param film_service:
+    :return:
+    """
+
+    film = await film_service.get_by_id(id_=film_id, index="movies")
+    if not film:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
+
+    return FilmDetailed(**film.dict())
+
+
+@router.get("/", response_model=list[ShortFilm])
+async def film_filter(
     from_: Optional[str] = Query(
         None,
         alias="page[number]",
-        title="Query string",
-        description="Query string for the items to search in the database that have a good match",
+        title="страница",
+        description="Порядковый номер страницы результатов",
     ),
-    size: Optional[str] = Query(None, alias="page[size]"),
-    sort: Optional[str] = Query(None, regex="-?imdb_rating"),
+    size: Optional[str] = Query(
+        None,
+        alias="page[size]",
+        title="размер страницы",
+        description="Количество документов на странице",
+    ),
+    sort: Optional[str] = Query("imdb_rating", regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
     film_service: FilmService = Depends(get_film_service),
-) -> Film:
-    film = await film_service.get_by_id(film_id)
-    if not film:
-        # Если фильм не найден, отдаём 404 статус
-        # Желательно пользоваться уже определёнными HTTP-статусами, которые содержат enum
-        # Такой код будет более поддерживаемым
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
-
-    # Перекладываем данные из models.Film в Film
-    # Обратите внимание, что у модели бизнес-логики есть поле description
-    # Которое отсутствует в модели ответа API.
-    # Если бы использовалась общая модель для бизнес-логики и формирования ответов API
-    # вы бы предоставляли клиентам данные, которые им не нужны
-    # и, возможно, данные, которые опасно возвращать
-    return Film(id=film.id, title=film.title)
+) -> list[ShortFilm]:
+    result = await film_search(
+        query=None,
+        from_=from_,
+        size=size,
+        sort=sort,
+        filter_genre_id=filter_genre_id,
+        film_service=film_service,
+    )
+    return result
 
 
-# GET /api/v1/film?filter[genre]=<uuid:UUID>&sort=-imdb_rating&page[size]=50&page[number]=1
-# GET /api/v1/film?sort=-imdb_rating&page[size]=50&page[number]=1
-# Полная информация по фильму.
-# /api/v1/film/<uuid:UUID>/
-@router.get("/search/")
+@router.get("/search/", response_model=list[ShortFilm])
 async def film_search(
     query: Optional[str] = Query("", alias="query"),
     from_: Optional[str] = Query(
         None,
         alias="page[number]",
-        title="Query string",
-        description="Query string for the items to search in the database that have a good match",
+        title="страница",
+        description="Порядковый номер страницы результатов",
     ),
-    size: Optional[str] = Query(None, alias="page[size]"),
+    size: Optional[str] = Query(
+        None,
+        alias="page[size]",
+        title="размер страницы",
+        description="Количество документов на странице",
+    ),
     sort: Optional[str] = Query(None, regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
-    filter_person_id: Optional[str] = Query(None, alias="filter[person]"),
-    # FIXME не используется, если успеет сделаю фильтрацию и по жанрам и по персоналиям
     film_service: FilmService = Depends(get_film_service),
-) -> list[Film]:
+) -> list[ShortFilm]:
     """
     Поиск по фильмам с пагинацией, фильтрацией по жанрам и сортировкой
 
@@ -76,6 +116,9 @@ async def film_search(
     :param film_service:
     :return:
     """
+    if query == "" and len(query) == 0:
+        return
+
     body = await generate_body(query, from_, size)
 
     if sort:
@@ -83,6 +126,10 @@ async def film_search(
 
     if filter_genre_id:
         filter_genre = await film_service.get_by_id(filter_genre_id, index="genre")
+        if not filter_genre:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND, detail="films not found"
+            )
         body = await add_filter_to_body(body, filter_genre)
 
     result = await film_service.search(index="movies", body=body)
@@ -95,17 +142,21 @@ async def film_search(
 
 async def generate_body(query, from_, size) -> dict:
     """
-    Создаёт тело запроса к эластику
+    Создаёт тело запроса к эластику.
+    Если query не задан - возвращает все документы.
 
     :param query:
     :param from_: номер выводимой страницы
     :param size: кол-во данных (документов) на странице
     :return:
     """
-    if not query:
-        query = ""
 
-    body = {"query": {"bool": {"must": [{"multi_match": {"query": query}}]}}}
+    if not query:
+        match = {"match_all": {}}
+    else:
+        match = {"multi_match": {"query": query}}
+
+    body = {"query": {"bool": {"must": [match]}}}
 
     if from_:
         body["from"] = from_
