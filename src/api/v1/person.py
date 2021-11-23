@@ -16,7 +16,7 @@ class Person(BaseModel):
     films: List[Dict]
 
 
-@router.get("/search", response_model=List[Person])
+@router.get("/search/", response_model=List[Person])
 async def person_search(
     query: str,
     page_number: int = Query(None, alias="page[number]"),

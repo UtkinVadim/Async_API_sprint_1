@@ -83,7 +83,7 @@ async def film_filter(
     return result
 
 
-@router.get("/search", response_model=List[ShortFilm])
+@router.get("/search/", response_model=List[ShortFilm])
 async def film_search(
     query: Optional[str] = Query("", alias="query"),
     from_: Optional[str] = Query(
