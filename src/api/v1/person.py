@@ -16,7 +16,7 @@ class Person(BaseModel):
     films: List[Dict]
 
 
-@router.get("/search/", response_model=List[Person])
+@router.get("/search", response_model=List[Person])
 async def person_search(
     query: str,
     page_number: int = Query(None, alias="page[number]"),
@@ -33,7 +33,7 @@ async def person_search(
     ]
 
 
-@router.get("/{person_id}/", response_model=Person)
+@router.get("/{person_id}", response_model=Person)
 async def person_details(person_id: str, person_service: PersonService = Depends(get_person_service)) -> Person:
     person = await person_service.get_by_id(person_id)
     if not person:
@@ -47,7 +47,7 @@ class PersonFilm(BaseModel):
     imdb_rating: Optional[float]
 
 
-@router.get("/{person_id}/film/", response_model=List[PersonFilm])
+@router.get("/{person_id}/film", response_model=List[PersonFilm])
 async def person_films(person_id: str, person_service: PersonService = Depends(get_person_service)) -> List[PersonFilm]:
     person = await person_service.get_by_id(person_id)
     if not person:

@@ -15,6 +15,7 @@ class GenreService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
+        self.index = "genre"
 
     async def get_all_genres(self) -> Optional[List[Genre]]:
         genres = await self._get_all_genres_from_elastic()
@@ -31,18 +32,17 @@ class GenreService:
         return genre
 
     async def _get_all_genres_from_elastic(self) -> Optional[List[Genre]]:
-        docs = await self.elastic.search(index="genre")
+        docs = await self.elastic.search(index=self.index)
         return [Genre(**doc["_source"]) for doc in docs["hits"]["hits"]]
 
     async def _get_genre_from_elastic_by_id(self, genre_id: str) -> Optional[Genre]:
-        doc = await self.elastic.get("genre", genre_id)
+        doc = await self.elastic.get(self.index, genre_id)
         return Genre(**doc["_source"])
 
     async def _genre_from_cache(self, genre_id: str) -> Optional[Genre]:
         data = await self.redis.get(genre_id)
         if not data:
             return None
-
         genre = Genre.parse_raw(data)
         return genre
 
