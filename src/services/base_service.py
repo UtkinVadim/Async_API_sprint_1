@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 from typing import List, Optional, Union
@@ -6,6 +5,7 @@ from typing import List, Optional, Union
 from aioredis import Redis
 from elasticsearch import AsyncElasticsearch
 from pydantic import BaseModel
+from utils import flatten_json
 
 from core.config import CACHE_EXPIRE_IN_SECONDS
 
@@ -28,13 +28,14 @@ class BaseService:
         :param index:
         :return:
         """
-        obj = await self._get_from_cache_by_id(id_)
+        key = await self._generate_redis_key(self.index, id_)
+        obj = await self._get_from_cache_by_id(key)
         if not obj:
             index = index if index else self.index
             obj = await self._get_by_id_from_elastic(id_, index)
             if not obj:
                 return None
-            await self._put_obj_to_cache(obj)
+            await self._put_obj_to_cache(obj, key=key)
         return obj
 
     async def search(self, body: dict) -> Optional[List[BaseModel]]:
@@ -45,12 +46,12 @@ class BaseService:
         :param body:
         :return:
         """
-        docs = await self._get_from_cache_by_body(body)
+        key = await self._generate_redis_key(self.index, body)
+        docs = await self._get_from_cache_by_body_key(key)
         if not docs:
             docs = await self._search_in_elastic(body=body)
             if not docs:
                 return None
-            key = await self._str2md5(body)
             await self._put_obj_to_cache(docs, key=key)
 
         return docs
@@ -84,16 +85,16 @@ class BaseService:
             logger.exception(f"Ошибка на этапе забора документа из elastic по id: {err}")
             return
 
-    async def _get_from_cache_by_id(self, id_: str) -> Optional[BaseModel]:
+    async def _get_from_cache_by_id(self, key: str) -> Optional[BaseModel]:
         """
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get
         # pydantic предоставляет удобное API для создания объекта моделей из json
 
-        :param id_:
+        :param key:
         :return:
         """
-        data = await self.redis.get(id_)
+        data = await self.redis.get(key)
         if not data:
             return None
 
@@ -101,17 +102,25 @@ class BaseService:
         return obj
 
     @staticmethod
-    async def _str2md5(body: dict) -> str:
+    async def _generate_redis_key(index: str, body: Union[dict, str]) -> str:
         """
-        Возвращает md5 от словаря с запросом к эластику.
+        Создаёт ключ для редиса, по которому будут храниться данные.
+        Структура ключа:
+        <es_index>::<first_key>::<first_value>::<second_key>::<second_value>
 
+        :param index:
         :param body:
         :return:
         """
 
-        return hashlib.md5(str(body).encode("utf-8")).hexdigest()
+        body_list = await flatten_json(body)
+        keys_list = [index, *body_list]
+        separate_symbol = "::"
+        key = separate_symbol.join(keys_list)
 
-    async def _get_from_cache_by_body(self, body: dict) -> Optional[List[BaseModel]]:
+        return key
+
+    async def _get_from_cache_by_body_key(self, key: str) -> Optional[List[BaseModel]]:
         """
         Забирает данные из кеша по ключу (body).
         Полученные данные вставляет в модель данных
@@ -119,7 +128,6 @@ class BaseService:
         :param body:
         :return:
         """
-        key = await self._str2md5(body)
         data = await self.redis.get(key)
         if not data:
             return None
@@ -131,7 +139,7 @@ class BaseService:
     async def _put_obj_to_cache(
         self,
         obj: Union[BaseModel, List[BaseModel]],
-        key: str = None,
+        key: str,
     ) -> None:
         """
         Сохраняем данные о фильме, используя команду set
@@ -143,11 +151,9 @@ class BaseService:
         :return:
         """
 
-        if not key:
-            key = obj.id
-            data_to_cache = obj.json()
-
-        else:
+        if isinstance(obj, list):
             data_to_cache = json.dumps({"result": [d.json() for d in obj]})
+        else:
+            data_to_cache = obj.json()
 
         await self.redis.set(key, data_to_cache, expire=CACHE_EXPIRE_IN_SECONDS)
