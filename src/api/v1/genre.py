@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from services.genre import GenreService, get_genre_service
+from strings.exceptions import GENRE_NOT_FOUND
 
 router = APIRouter()
 
@@ -18,7 +19,7 @@ class Genre(BaseModel):
 async def genres_list(genre_service: GenreService = Depends(get_genre_service)) -> List[Genre]:
     genres: list = await genre_service.search(body={})
     if not genres:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="genre not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=GENRE_NOT_FOUND)
     return [Genre(uuid=genre.id, name=genre.name) for genre in genres]
 
 
@@ -26,6 +27,6 @@ async def genres_list(genre_service: GenreService = Depends(get_genre_service)) 
 async def genre_details(genre_id: str, genre_service: GenreService = Depends(get_genre_service)) -> Genre:
     genre = await genre_service.get_by_id(genre_id)
     if not genre:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="genre not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=GENRE_NOT_FOUND)
 
     return Genre(uuid=genre.id, name=genre.name)
