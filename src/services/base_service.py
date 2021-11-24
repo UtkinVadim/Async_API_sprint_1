@@ -82,7 +82,7 @@ class BaseService:
         """
         try:
             index = index if index else self.index
-            doc = await self.elastic.get(self.index, id_)
+            doc = await self.elastic.get(index, id_)
             return self.model(**doc["_source"])
         except NotFoundError as err:
             logger.exception(f"Ошибка на этапе забора документа из elastic по id: {err}")
