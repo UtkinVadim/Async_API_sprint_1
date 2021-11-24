@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from api.utils import add_filter_to_body, add_sort_to_body, generate_body
 from services.film import FilmService, get_film_service
+from strings.exceptions import FILM_NOT_FOUND
 
 router = APIRouter()
 
@@ -77,13 +78,13 @@ async def film_search(
     if filter_genre_id:
         filter_genre = await film_service.get_by_id(filter_genre_id, index="genre")
         if not filter_genre:
-            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=FILM_NOT_FOUND)
         body = await add_filter_to_body(body, filter_genre)
 
     result = await film_service.search(body=body)
 
     if not result:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="films not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=FILM_NOT_FOUND)
 
     return result
 
@@ -100,7 +101,7 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
     """
     film = await film_service.get_by_id(id_=film_id)
     if not film:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=FILM_NOT_FOUND)
 
     return FilmDetailed(**film.dict())
 
