@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from models.base_data_model import BaseDataModel
+from models.base_orjson_model import BaseOrjsonModel
 
 
 class Film(BaseModel):
@@ -12,7 +12,7 @@ class Film(BaseModel):
     role: str
 
 
-class Person(BaseDataModel):
+class Person(BaseOrjsonModel):
     id: str
     fullname: str
     film_ids: Optional[List[Film]]
