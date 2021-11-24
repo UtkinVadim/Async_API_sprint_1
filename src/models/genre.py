@@ -1,13 +1,6 @@
-import orjson
-from pydantic import BaseModel
-
-from models.utils import orjson_dumps
+from models.base_data_model import BaseDataModel
 
 
-class Genre(BaseModel):
+class Genre(BaseDataModel):
     id: str
     name: str
-
-    class Config:
-        json_loads = orjson.loads
-        json_dumps = orjson_dumps
