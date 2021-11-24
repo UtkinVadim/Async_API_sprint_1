@@ -1,11 +1,11 @@
+import hashlib
 import json
 import logging
-import hashlib
+from typing import List, Optional, Union
 
-from typing import Union, Optional, List
 from aioredis import Redis
-from pydantic import BaseModel
 from elasticsearch import AsyncElasticsearch
+from pydantic import BaseModel
 
 from core.config import CACHE_EXPIRE_IN_SECONDS
 

@@ -1,12 +1,12 @@
 from functools import lru_cache
 
 from aioredis import Redis
-from fastapi import Depends
 from elasticsearch import AsyncElasticsearch
+from fastapi import Depends
 
+from db.elastic import get_elastic
 from db.redis import get_redis
 from models.genre import Genre
-from db.elastic import get_elastic
 from services.base_service import BaseService
 
 

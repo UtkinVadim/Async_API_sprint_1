@@ -1,8 +1,8 @@
-from typing import List
 from http import HTTPStatus
+from typing import List
 
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from fastapi import Depends, HTTPException, APIRouter
 
 from services.genre import GenreService, get_genre_service
 
