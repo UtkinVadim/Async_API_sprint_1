@@ -1,9 +1,8 @@
 from typing import List, Optional
 
-import orjson
 from pydantic import BaseModel
 
-from models.utils import orjson_dumps
+from models.base_data_model import BaseDataModel
 
 
 class Film(BaseModel):
@@ -13,11 +12,6 @@ class Film(BaseModel):
     role: str
 
 
-class Person(BaseModel):
-    id: str
+class Person(BaseDataModel):
     fullname: str
     film_ids: Optional[List[Film]]
-
-    class Config:
-        json_loads = orjson.loads
-        json_dumps = orjson_dumps
