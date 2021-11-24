@@ -2,42 +2,16 @@ from http import HTTPStatus
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
 
 from api.utils import add_filter_to_body, add_sort_to_body, generate_body
+from models.film_response import FilmDetailResponse, ShortFilmResponse
 from services.film import FilmService, get_film_service
 from strings.exceptions import FILM_NOT_FOUND
 
 router = APIRouter()
 
 
-class ShortFilm(BaseModel):
-    id: str
-    title: str
-    imdb_rating: Optional[float]
-
-
-class FilmPerson(BaseModel):
-    id: str
-    name: str
-
-
-class FilmDetailed(BaseModel):
-    """
-    Класс модели с полной информацией о фильме
-    """
-
-    id: str
-    title: Optional[str]
-    imdb_rating: Optional[float]
-    description: Optional[str]
-    genre: Optional[list]
-    director: Optional[str]
-    actors: Optional[list[FilmPerson]]
-    writers: Optional[list[FilmPerson]]
-
-
-@router.get("/search", response_model=List[ShortFilm])
+@router.get("/search", response_model=List[ShortFilmResponse])
 async def film_search(
     query: Optional[str] = Query("", alias="query"),
     from_: Optional[str] = Query(
@@ -55,7 +29,7 @@ async def film_search(
     sort: Optional[str] = Query(None, regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
     film_service: FilmService = Depends(get_film_service),
-) -> Optional[List[ShortFilm]]:
+) -> Optional[List[ShortFilmResponse]]:
     """
     Поиск по фильмам с пагинацией, фильтрацией по жанрам и сортировкой
 
@@ -89,8 +63,8 @@ async def film_search(
     return result
 
 
-@router.get("/{film_id}", response_model=FilmDetailed)
-async def film_details(film_id: str, film_service: FilmService = Depends(get_film_service)) -> FilmDetailed:
+@router.get("/{film_id}", response_model=FilmDetailResponse)
+async def film_details(film_id: str, film_service: FilmService = Depends(get_film_service)) -> FilmDetailResponse:
     """
     Отдаёт полную информацию по фильму
     GET /api/v1/film/<uuid:UUID>/
@@ -103,10 +77,10 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=FILM_NOT_FOUND)
 
-    return FilmDetailed(**film.dict())
+    return FilmDetailResponse(**film.dict())
 
 
-@router.get("/", response_model=List[ShortFilm])
+@router.get("/", response_model=List[ShortFilmResponse])
 async def film_filter(
     from_: Optional[str] = Query(
         None,
@@ -123,7 +97,7 @@ async def film_filter(
     sort: Optional[str] = Query("imdb_rating", regex="-?imdb_rating"),
     filter_genre_id: Optional[str] = Query(None, alias="filter[genre]"),
     film_service: FilmService = Depends(get_film_service),
-) -> List[ShortFilm]:
+) -> List[ShortFilmResponse]:
     result = await film_search(
         query=None,
         from_=from_,

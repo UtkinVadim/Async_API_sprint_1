@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from models.base_data_model import BaseDataModel
+from models.base_orjson_model import BaseOrjsonModel
 
 
 class FilmPerson(BaseModel):
@@ -10,7 +10,7 @@ class FilmPerson(BaseModel):
     name: str
 
 
-class Film(BaseDataModel):
+class Film(BaseOrjsonModel):
     id: str
     title: Optional[str]
     imdb_rating: Optional[float]
