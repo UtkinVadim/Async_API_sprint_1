@@ -13,5 +13,6 @@ class Film(BaseModel):
 
 
 class Person(BaseDataModel):
+    id: str
     fullname: str
     film_ids: Optional[List[Film]]
