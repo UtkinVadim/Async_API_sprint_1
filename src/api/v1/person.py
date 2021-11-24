@@ -1,8 +1,8 @@
 from http import HTTPStatus
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
 
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from fastapi import Depends, HTTPException, APIRouter, Query
 
 from api.v1.film import generate_body
 from services.person import PersonService, get_person_service

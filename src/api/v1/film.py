@@ -1,8 +1,7 @@
 from http import HTTPStatus
-from typing import Optional, List
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-
 from pydantic import BaseModel
 
 from api.utils import add_filter_to_body, add_sort_to_body, generate_body
