@@ -85,7 +85,7 @@ class BaseService:
             doc = await self.elastic.get(index, id_)
             return self.model(**doc["_source"])
         except NotFoundError as err:
-            logger.exception(f"Ошибка на этапе забора документа из elastic по id: {err}")
+            logger.exception("Ошибка на этапе забора документа из elastic по id")
             raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=err.info)
         except Exception as err:
             logger.warning(err, exc_info=True)
