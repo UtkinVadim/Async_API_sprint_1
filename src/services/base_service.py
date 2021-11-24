@@ -1,13 +1,16 @@
 import json
 import logging
+from http import HTTPStatus
 from typing import List, Optional, Union
 
 from aioredis import Redis
-from elasticsearch import AsyncElasticsearch
+from elasticsearch import AsyncElasticsearch, NotFoundError
+from fastapi import HTTPException
 from pydantic import BaseModel
-from utils import flatten_json
 
 from core.config import CACHE_EXPIRE_IN_SECONDS
+
+from .utils import flatten_json
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +84,12 @@ class BaseService:
             index = index if index else self.index
             doc = await self.elastic.get(self.index, id_)
             return self.model(**doc["_source"])
-        except Exception as err:
+        except NotFoundError as err:
             logger.exception(f"Ошибка на этапе забора документа из elastic по id: {err}")
-            return
+            raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=err.info)
+        except Exception as err:
+            logger.warning(err, exc_info=True)
+            raise HTTPException(status_code=HTTPStatus.INTERNAL_SERVER_ERROR, detail=err)
 
     async def _get_from_cache_by_id(self, key: str) -> Optional[BaseModel]:
         """
