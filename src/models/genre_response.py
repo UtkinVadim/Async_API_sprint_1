@@ -1,6 +1,6 @@
 from models.base_orjson_model import BaseOrjsonModel
 
 
-class Genre(BaseOrjsonModel):
-    id: str
+class GenreResponse(BaseOrjsonModel):
+    uuid: str
     name: str
